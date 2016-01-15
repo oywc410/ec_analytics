@@ -105,7 +105,10 @@ func getLineData(data []byte) []int {
 			startKey = stopKey + 1
 			stopKey = key
 
-			reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+			if reKey != 2 && reKey != 4 && reKey != 5 {
+				reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+			}
+
 			reKey++
 		}
 	}
