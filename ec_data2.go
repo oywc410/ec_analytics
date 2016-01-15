@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -94,6 +93,31 @@ func addFile() {
 
 }
 
+func getLineData(data []byte) []int64 {
+	reData := make([]int64, 0, 7)
+
+	tmp := make([]byte, 0, 10)
+
+	var tmp1 int64
+
+	for _, value := range data {
+		if value == 44 {
+
+			tmp1,_  = strconv.ParseInt(string(tmp), 10, 64)
+			reData = append(reData, int64(tmp1))
+
+			tmp = make([]byte, 0, 10)
+		} else {
+			tmp = append(tmp, value)
+		}
+	}
+
+	tmp1,_  = strconv.ParseInt(string(tmp), 10, 64)
+	reData = append(reData, int64(tmp1))
+
+	return reData
+}
+
 func getFile() {
 	file, _ := os.Open("test.tmp2")
 	bs := bufio.NewScanner(file)
@@ -120,17 +144,16 @@ func getFile() {
 	mapCustomer := make(map[int]int)
 
 	for bs.Scan() {
+		arrSplit := getLineData(bs.Bytes())
 
-		arrSplit := strings.Split(bs.Text(), ",")
+		//arrSplit := strings.Split(bs.Text(), ",")
 
-		if arrSplit[0] != "0" && arrSplit[1] != "0" {
-			t1, _ := strconv.Atoi(arrSplit[5])
-			cuTime := int64(t1)
-			t2, _ := strconv.Atoi(arrSplit[6])
-			orTime := int64(t2)
+		if arrSplit[0] != 0 && arrSplit[1] != 0 {
+			cuTime := int64(arrSplit[5])
+			orTime := int64(arrSplit[6])
 			if cuTime >= the_time {
 				if orTime <= time1 {
-					customer_id, _ := strconv.Atoi(arrSplit[1])
+					customer_id := int(arrSplit[1])
 
 					if _, ok := mapCustomer[customer_id]; !ok {
 						allCustomer = append(allCustomer, customer_id)
@@ -487,7 +510,12 @@ FROM
 
 func main() {
 	t1 := time.Now()
+	getFile()
 	//sqlTest()
 	//getFile()
+	fmt.Println(time.Now().Sub(t1))
+	fmt.Println("---------------------")
+	t1 = time.Now()
+	sqlTest()
 	fmt.Println(time.Now().Sub(t1))
 }
