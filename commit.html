@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <script type="text/javascript">
+    (function(i, s, o, g, r, a, m) {
+        i['GoogleAnalyticsObject'] = r;
+        i[r] = i[r] || function() {
+            (i[r].q = i[r].q || []).push(arguments)
+        }, i[r].l = 1 * new Date();
+        a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0];
+        a.async = 1;
+        a.src = g;
+        m.parentNode.insertBefore(a, m)
+    })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+    ga('create', 'UA-67183575-4');
+	ga('require', 'ec');
+
+    ga('ec:addProduct', {
+	  'id': 'C12347',
+	  'name': 'Android Warhol T-ShirtA',
+	  'category': 'Apparel',
+	  'brand': 'Google',
+	  'variant': 'black',
+	  'quantity': '15',
+	  'price': '15'
+	});
+
+    // Transaction level information is provided via an actionFieldObject.
+	ga('ec:setAction', 'purchase', {
+	  'id': 'T12345',
+	  'affiliation': 'Google Store - Online',
+	  'revenue': '37.39',
+	  'tax': '2.85',
+	  'shipping': '5.34',
+	  'coupon': 'SUMMER2013'    // User added a coupon at checkout.
+	});
+
+	ga('send', 'pageview');     // Send transaction data with initial pageview.
+
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>
