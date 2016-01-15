@@ -5,11 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
-	"sort"
+	"strconv"
 )
 
 var tb_name = "webbin_test"
@@ -93,27 +92,28 @@ func addFile() {
 
 }
 
-func getLineData(data []byte) []int64 {
-	reData := make([]int64, 0, 7)
+func getLineData(data []byte) []int {
+	reData := make([]int, 7, 7)
 
-	tmp := make([]byte, 0, 10)
+	startKey := 0
+	stopKey := -1
 
-	var tmp1 int64
+	reKey := 0
 
-	for _, value := range data {
+	for key, value := range data {
 		if value == 44 {
+			startKey = stopKey + 1
+			stopKey = key
 
-			tmp1,_  = strconv.ParseInt(string(tmp), 10, 64)
-			reData = append(reData, int64(tmp1))
-
-			tmp = make([]byte, 0, 10)
-		} else {
-			tmp = append(tmp, value)
+			reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+			reKey++
 		}
 	}
 
-	tmp1,_  = strconv.ParseInt(string(tmp), 10, 64)
-	reData = append(reData, int64(tmp1))
+	startKey = stopKey + 1
+	stopKey = len(data)
+
+	reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
 
 	return reData
 }
@@ -123,115 +123,11 @@ func getFile() {
 	bs := bufio.NewScanner(file)
 	i := 0
 
-	t, _ := time.Parse("2006-01-02 15:04:05", "2012-05-01 23:59:59")
-	the_time := t.Unix()
-	t, _ = time.Parse("2006-01-02 15:04:05", "2015-05-01 23:59:59")
-	time1 := t.Unix()
-	t, _ = time.Parse("2006-01-02 15:04:05", "2014-05-01 23:59:59")
-	time2 := t.Unix()
-	t, _ = time.Parse("2006-01-02 15:04:05", "2013-05-01 23:59:59")
-	time3 := t.Unix()
-	t, _ = time.Parse("2006-01-02 15:04:05", "2012-05-01 23:59:59")
-	time4 := t.Unix()
-
-	fmt.Println(the_time)
-
-	mapA := make(map[int]float32)
-	mapB := make(map[int]float32)
-	mapC := make(map[int]float32)
-
-	allCustomer := make([]int, 0, 10000)
-	mapCustomer := make(map[int]int)
 
 	for bs.Scan() {
-		arrSplit := getLineData(bs.Bytes())
-
-		//arrSplit := strings.Split(bs.Text(), ",")
-
-		if arrSplit[0] != 0 && arrSplit[1] != 0 {
-			cuTime := int64(arrSplit[5])
-			orTime := int64(arrSplit[6])
-			if cuTime >= the_time {
-				if orTime <= time1 {
-					customer_id := int(arrSplit[1])
-
-					if _, ok := mapCustomer[customer_id]; !ok {
-						allCustomer = append(allCustomer, customer_id)
-						mapCustomer[customer_id] = customer_id
-					}
-
-					if orTime >= time2 {
-						mapA[customer_id]++
-					} else if orTime >= time3 {
-						mapB[customer_id]++
-					} else if orTime >= time4 {
-						mapC[customer_id]++
-					}
-				}
-			}
-		}
+		getLineData(bs.Bytes())
 
 		i++
-	}
-
-	sort.Ints(allCustomer)
-
-	for _, customer_id := range allCustomer {
-
-		var a, b float32
-		var rank string
-
-		A := mapA[customer_id]
-		B := mapB[customer_id]
-		C := mapC[customer_id]
-
-		if A == 0 && B == 0 && C == 0 {
-			rank = "休眠"
-		} else {
-			if A == 0 && B == 0 {
-				a = 0
-			} else if A == 0 {
-				a = -100
-			} else if B == 0 {
-				a = 100
-			} else {
-				a = A/B*100 - 100
-			}
-
-			if B == 0 && C == 0 {
-				b = 0
-			} else if B == 0 {
-				b = -100
-			} else if C == 0 {
-				b = 100
-			} else {
-				b = B/C*100 - 100
-			}
-
-			if a >= 0.5 && b >= 0.5 {
-				rank = "最優良"
-			} else if a >= 0.5 && b > -0.5 {
-				rank = "優良"
-			} else if a >= 0.5 && b <= -0.5 {
-				rank = "準優良"
-			} else if a <= 0.5 && a > -0.5 && b >= 0.5 {
-				rank = "優良傾向"
-			} else if a <= 0.5 && a > -0.5 && b > -0.5 {
-				rank = "安定"
-			} else if a <= 0.5 && a > -0.5 && b <= -0.5 {
-				rank = "休眠傾向"
-			} else if a <= -0.5 && b >= 0.5 {
-				rank = "休眠予備A"
-			} else if a <= -0.5 && b < 0.5 && b > -0.5 {
-				rank = "休眠予備B"
-			} else {
-				rank = "休眠"
-			}
-		}
-
-		_ = rank
-
-		//fmt.Println(customer_id, mapA[customer_id], mapB[customer_id], mapC[customer_id], rank)
 	}
 
 	fmt.Println(i)
