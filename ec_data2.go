@@ -9,9 +9,10 @@ import (
 
 	_ "github.com/lib/pq"
 	"strconv"
+	"strings"
 )
 
-var tb_name = "webbin_test"
+var tb_name = "laundry_my"
 
 func addFile() {
 
@@ -95,6 +96,12 @@ func addFile() {
 func getLineData(data []byte) []int {
 	reData := make([]int, 7, 7)
 
+	tmp := strings.Split(string(data), ",")
+	reData[0], _ = strconv.Atoi(tmp[0])
+	reData[1], _ = strconv.Atoi(tmp[1])
+	reData[3], _ = strconv.Atoi(tmp[3])
+	reData[6], _ = strconv.Atoi(tmp[6])
+	/*
 	startKey := 0
 	stopKey := -1
 
@@ -117,7 +124,7 @@ func getLineData(data []byte) []int {
 	stopKey = len(data)
 
 	reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
-
+	*/
 	return reData
 }
 
@@ -409,12 +416,13 @@ FROM
 
 func main() {
 	t1 := time.Now()
-	getFile()
-	//sqlTest()
 	//getFile()
+	//sqlTest()
+	getFile()
+	//addFile()
 	fmt.Println(time.Now().Sub(t1))
-	fmt.Println("---------------------")
-	t1 = time.Now()
-	sqlTest()
-	fmt.Println(time.Now().Sub(t1))
+	//fmt.Println("---------------------")
+	//t1 = time.Now()
+	//sqlTest()
+	//fmt.Println(time.Now().Sub(t1))
 }

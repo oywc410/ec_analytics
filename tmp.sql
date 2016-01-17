@@ -308,7 +308,7 @@ FROM
 
 
 -----------------テストデータ
-INSERT INTO dtb_order VALUE (
+INSERT INTO dtb_order (
 order_id
 ,order_temp_id
 ,customer_id
