@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-var tb_name = "laundry_my"
+var tb_name = "webbin_test"
 
 func addFile() {
 
@@ -104,7 +104,7 @@ func getLineData(data []byte, reData []int) {
 			startKey = stopKey + 1
 			stopKey = key
 
-			if reKey != 2 && reKey != 4 && reKey != 5 {
+			if reKey != 2 && reKey != 4 {
 				reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
 			}
 
@@ -126,14 +126,111 @@ func getFile() {
 
 	tmp := make([]int, 7, 7)
 
+	t, _ := time.Parse("2006-01-02 15:04:05", "2012-05-01 23:59:59")
+	the_time := int(t.Unix())
+	t, _ = time.Parse("2006-01-02 15:04:05", "2015-05-01 23:59:59")
+	time1 := int(t.Unix())
+	t, _ = time.Parse("2006-01-02 15:04:05", "2014-05-01 23:59:59")
+	time2 := int(t.Unix())
+	t, _ = time.Parse("2006-01-02 15:04:05", "2013-05-01 23:59:59")
+	time3 := int(t.Unix())
+	t, _ = time.Parse("2006-01-02 15:04:05", "2012-05-01 23:59:59")
+	time4 := int(t.Unix())
+
+	mapA := make(map[int]float32)
+	mapB := make(map[int]float32)
+	mapC := make(map[int]float32)
+
+	allCustomer := make([]int, 0, 10000)
+	mapCustomer := make(map[int]int)
+
+	customer_id := 0
+
+
 	for bs.Scan() {
 		getLineData(bs.Bytes(), tmp)
 
 		if tmp[0] != 0 && tmp[1] != 0 {
 
+			if tmp[5] >= the_time {
+				if tmp[6] <= time1 {
+					customer_id = tmp[1]
+					if _, ok := mapCustomer[customer_id]; !ok {
+						allCustomer = append(allCustomer, customer_id)
+						mapCustomer[customer_id] = customer_id
+					}
+
+					if tmp[6] >= time2 {
+						mapA[customer_id]++
+					} else if tmp[6] >= time3 {
+						mapB[customer_id]++
+					} else if tmp[6] >= time4 {
+						mapC[customer_id]++
+					}
+				}
+			}
 		}
 
 		i++
+	}
+
+	var a, b float32
+	var rank string
+	var A ,B, C float32
+
+	for _, customer_id := range allCustomer {
+
+		A = mapA[customer_id]
+		B = mapB[customer_id]
+		C = mapC[customer_id]
+
+		if A == 0 && B == 0 && C == 0 {
+			rank = "休眠"
+		} else {
+			if A == 0 && B == 0 {
+				a = 0
+			} else if A == 0 {
+				a = -100
+			} else if B == 0 {
+				a = 100
+			} else {
+				a = A/B*100 - 100
+			}
+
+			if B == 0 && C == 0 {
+				b = 0
+			} else if B == 0 {
+				b = -100
+			} else if C == 0 {
+				b = 100
+			} else {
+				b = B/C*100 - 100
+			}
+
+			if a >= 0.5 && b >= 0.5 {
+				rank = "最優良"
+			} else if a >= 0.5 && b > -0.5 {
+				rank = "優良"
+			} else if a >= 0.5 && b <= -0.5 {
+				rank = "準優良"
+			} else if a <= 0.5 && a > -0.5 && b >= 0.5 {
+				rank = "優良傾向"
+			} else if a <= 0.5 && a > -0.5 && b > -0.5 {
+				rank = "安定"
+			} else if a <= 0.5 && a > -0.5 && b <= -0.5 {
+				rank = "休眠傾向"
+			} else if a <= -0.5 && b >= 0.5 {
+				rank = "休眠予備A"
+			} else if a <= -0.5 && b < 0.5 && b > -0.5 {
+				rank = "休眠予備B"
+			} else {
+				rank = "休眠"
+			}
+		}
+
+		_ = rank
+
+		//fmt.Println(customer_id, mapA[customer_id], mapB[customer_id], mapC[customer_id], rank)
 	}
 
 	fmt.Println(i)
@@ -417,8 +514,8 @@ func main() {
 	getFile()
 	//addFile()
 	fmt.Println(time.Now().Sub(t1))
-	//fmt.Println("---------------------")
-	//t1 = time.Now()
-	//sqlTest()
-	//fmt.Println(time.Now().Sub(t1))
+	fmt.Println("---------------------")
+	t1 = time.Now()
+	sqlTest()
+	fmt.Println(time.Now().Sub(t1))
 }
