@@ -124,8 +124,6 @@ func getFile() {
 	bs := bufio.NewScanner(file)
 	i := 0
 
-	tmp := make([]int, 7, 7)
-
 	t, _ := time.Parse("2006-01-02 15:04:05", "2012-05-01 23:59:59")
 	the_time := int(t.Unix())
 	t, _ = time.Parse("2006-01-02 15:04:05", "2015-05-01 23:59:59")
@@ -145,6 +143,8 @@ func getFile() {
 	mapCustomer := make(map[int]int)
 
 	customer_id := 0
+
+	tmp := make([]int, 7, 7)
 
 
 	for bs.Scan() {
@@ -509,9 +509,9 @@ FROM
 
 func main() {
 	t1 := time.Now()
-	//getFile()
-	//sqlTest()
 	getFile()
+	//sqlTest()
+	//getFile()
 	//addFile()
 	fmt.Println(time.Now().Sub(t1))
 	fmt.Println("---------------------")
