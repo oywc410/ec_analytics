@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"strconv"
+	"runtime"
 )
 
 var tb_name = "webbin_test"
@@ -92,7 +93,9 @@ func addFile() {
 
 }
 
-func getLineData(data []byte, reData []int) {
+func getLineData(data []byte) [][]byte {
+
+	reData := make([][]byte, 7, 7)
 
 	startKey := 0
 	stopKey := -1
@@ -105,7 +108,8 @@ func getLineData(data []byte, reData []int) {
 			stopKey = key
 
 			if reKey != 2 && reKey != 4 {
-				reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+				//reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+				reData[reKey] = data[startKey:stopKey]
 			}
 
 			reKey++
@@ -115,8 +119,9 @@ func getLineData(data []byte, reData []int) {
 	startKey = stopKey + 1
 	stopKey = len(data)
 
-	reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
-
+	//reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+	reData[reKey] = data[startKey:stopKey]
+	return reData
 }
 
 func getFile() {
@@ -144,11 +149,60 @@ func getFile() {
 
 	customer_id := 0
 
+	chanTmp := make(chan [][]byte, 100)
+	//chanTmpInt := make(chan []int, 100)
+
+	go func () {
+		for bs.Scan() {
+			chanTmp <- getLineData(bs.Bytes())
+			i++
+		}
+
+		close(chanTmp)
+	}()
+
 	tmp := make([]int, 7, 7)
 
+	LOOP:
+	for {
+		select {
+		case byteTmp, ok := <-chanTmp:
 
+			if ok {
+				tmp[0], _ = strconv.Atoi(string(byteTmp[0]))
+				tmp[1], _ = strconv.Atoi(string(byteTmp[1]))
+				tmp[5], _ = strconv.Atoi(string(byteTmp[5]))
+				tmp[6], _ = strconv.Atoi(string(byteTmp[6]))
+
+				if tmp[0] != 0 && tmp[1] != 0 {
+
+					if tmp[5] >= the_time {
+						if tmp[6] <= time1 {
+							customer_id = tmp[1]
+							if _, ok := mapCustomer[customer_id]; !ok {
+								allCustomer = append(allCustomer, customer_id)
+								mapCustomer[customer_id] = customer_id
+							}
+
+							if tmp[6] >= time2 {
+								mapA[customer_id]++
+							} else if tmp[6] >= time3 {
+								mapB[customer_id]++
+							} else if tmp[6] >= time4 {
+								mapC[customer_id]++
+							}
+						}
+					}
+				}
+			} else {
+				break LOOP
+			}
+ 		}
+	}
+
+	/*
 	for bs.Scan() {
-		getLineData(bs.Bytes(), tmp)
+		tmp := getLineData(bs.Bytes())
 
 		if tmp[0] != 0 && tmp[1] != 0 {
 
@@ -173,6 +227,7 @@ func getFile() {
 
 		i++
 	}
+	*/
 
 	var a, b float32
 	var rank string
@@ -508,6 +563,8 @@ FROM
 }
 
 func main() {
+	runtime.GOMAXPROCS(2)
+
 	t1 := time.Now()
 	getFile()
 	//sqlTest()
