@@ -128,6 +128,11 @@ func getFile() {
 
 	for bs.Scan() {
 		getLineData(bs.Bytes(), tmp)
+
+		if tmp[0] != 0 && tmp[1] != 0 {
+
+		}
+
 		i++
 	}
 
