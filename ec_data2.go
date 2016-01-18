@@ -9,9 +9,10 @@ import (
 
 	_ "github.com/lib/pq"
 	"strconv"
+	"runtime"
 )
 
-var tb_name = "webbin_test"
+var tb_name = "laundry_my"
 
 func addFile() {
 
@@ -92,7 +93,7 @@ func addFile() {
 
 }
 
-func getLineData(data []byte, reData []int) {
+func getLineData(data []byte, reData [][]byte) {
 
 	startKey := 0
 	stopKey := -1
@@ -105,7 +106,8 @@ func getLineData(data []byte, reData []int) {
 			stopKey = key
 
 			if reKey != 2 && reKey != 4 {
-				reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+				//reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+				reData[reKey] = data[startKey:stopKey]
 			}
 
 			reKey++
@@ -115,7 +117,8 @@ func getLineData(data []byte, reData []int) {
 	startKey = stopKey + 1
 	stopKey = len(data)
 
-	reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+	//reData[reKey], _ = strconv.Atoi(string(data[startKey:stopKey]))
+	reData[reKey] = data[startKey:stopKey]
 
 }
 
@@ -139,46 +142,123 @@ func getFile() {
 	mapB := make(map[int]float32)
 	mapC := make(map[int]float32)
 
-	allCustomer := make([]int, 0, 10000)
 	mapCustomer := make(map[int]int)
 
 	customer_id := 0
 
-	tmp := make([]int, 7, 7)
+	tmpChan := make(chan [][]byte, 10)
+	tmpIntChan := make(chan []int, 10)
+	tmpChan2 := make(chan [][]byte, 10)
+
+	go func () {
+		for bs.Scan() {
+			tmpbyte := make([][]byte, 7, 7)
+			getLineData(bs.Bytes(), tmpbyte)
+			if i % 2 == 0 {
+				tmpChan <- tmpbyte
+			} else {
+				tmpChan2 <- tmpbyte
+			}
+
+			i++
+		}
+		t := make([][]byte, 1, 1)
+		tmpChan <- t
+		tmpChan2 <- t
+	}()
+
+	go func () {
+		for {
+			select {
+			case bytes := <- tmpChan :
+
+				intTmp := make([]int, 7, 7)
+				intTmp[0], _ = strconv.Atoi(string(bytes[0]))
 
 
-	for bs.Scan() {
-		getLineData(bs.Bytes(), tmp)
-
-		if tmp[0] != 0 && tmp[1] != 0 {
-
-			if tmp[5] >= the_time {
-				if tmp[6] <= time1 {
-					customer_id = tmp[1]
-					if _, ok := mapCustomer[customer_id]; !ok {
-						allCustomer = append(allCustomer, customer_id)
-						mapCustomer[customer_id] = customer_id
-					}
-
-					if tmp[6] >= time2 {
-						mapA[customer_id]++
-					} else if tmp[6] >= time3 {
-						mapB[customer_id]++
-					} else if tmp[6] >= time4 {
-						mapC[customer_id]++
-					}
+				if intTmp[0] == 0 && len(bytes) == 1 {
+					tmpIntChan <- make([]int, 1, 1)
+					close(tmpChan)
+					return
 				}
+
+				intTmp[1], _ = strconv.Atoi(string(bytes[1]))
+				intTmp[5], _ = strconv.Atoi(string(bytes[5]))
+				intTmp[6], _ = strconv.Atoi(string(bytes[6]))
+
+				tmpIntChan <- intTmp
 			}
 		}
 
-		i++
+	}()
+
+	go func () {
+		for {
+			select {
+			case bytes := <- tmpChan2 :
+
+				intTmp := make([]int, 7, 7)
+				intTmp[0], _ = strconv.Atoi(string(bytes[0]))
+
+
+				if intTmp[0] == 0 && len(bytes) == 1 {
+					tmpIntChan <- make([]int, 1, 1)
+					close(tmpChan2)
+					return
+				}
+
+				intTmp[1], _ = strconv.Atoi(string(bytes[1]))
+				intTmp[5], _ = strconv.Atoi(string(bytes[5]))
+				intTmp[6], _ = strconv.Atoi(string(bytes[6]))
+
+				tmpIntChan <- intTmp
+			}
+		}
+
+	}()
+
+	tmp := make([]int, 7, 7)
+
+	isEnd := false
+
+	LOOP:
+	for {
+		select {
+		case tmp = <- tmpIntChan :
+			if tmp[0] != 0 && tmp[1] != 0 {
+
+				if tmp[5] >= the_time {
+					if tmp[6] <= time1 {
+						customer_id = tmp[1]
+						if _, ok := mapCustomer[customer_id]; !ok {
+							mapCustomer[customer_id] = customer_id
+						}
+
+						if tmp[6] >= time2 {
+							mapA[customer_id]++
+						} else if tmp[6] >= time3 {
+							mapB[customer_id]++
+						} else if tmp[6] >= time4 {
+							mapC[customer_id]++
+						}
+					}
+				}
+			} else if len(tmp) == 1 {
+				if isEnd {
+					break LOOP
+				} else {
+					isEnd = true
+				}
+
+			}
+		}
 	}
 
 	var a, b float32
 	var rank string
 	var A ,B, C float32
 
-	for _, customer_id := range allCustomer {
+	for _, customer_id := range mapCustomer {
 
 		A = mapA[customer_id]
 		B = mapB[customer_id]
@@ -508,14 +588,16 @@ FROM
 }
 
 func main() {
+	runtime.GOMAXPROCS(4)
+
 	t1 := time.Now()
 	getFile()
 	//sqlTest()
 	//getFile()
 	//addFile()
 	fmt.Println(time.Now().Sub(t1))
-	fmt.Println("---------------------")
-	t1 = time.Now()
-	sqlTest()
-	fmt.Println(time.Now().Sub(t1))
+	//fmt.Println("---------------------")
+	// t1 = time.Now()
+	//sqlTest()
+	//fmt.Println(time.Now().Sub(t1))
 }
