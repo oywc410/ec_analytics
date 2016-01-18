@@ -146,9 +146,9 @@ func getFile() {
 
 	customer_id := 0
 
-	tmpChan := make(chan [][]byte, 10)
-	tmpIntChan := make(chan []int, 10)
-	tmpChan2 := make(chan [][]byte, 10)
+	tmpChan := make(chan [][]byte, 100)
+	tmpIntChan := make(chan []int, 200)
+	tmpChan2 := make(chan [][]byte, 100)
 
 	go func () {
 		for bs.Scan() {
@@ -588,7 +588,7 @@ FROM
 }
 
 func main() {
-	runtime.GOMAXPROCS(4)
+	runtime.GOMAXPROCS(12)
 
 	t1 := time.Now()
 	getFile()
