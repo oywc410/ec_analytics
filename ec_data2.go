@@ -588,7 +588,7 @@ FROM
 }
 
 func main() {
-	runtime.GOMAXPROCS(12)
+	runtime.GOMAXPROCS(7)
 
 	t1 := time.Now()
 	getFile()
