@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"strconv"
+	"runtime"
 )
 
 var tb_name = "webbin_test"
@@ -120,10 +121,6 @@ func getLineData(data []byte, reData []int) {
 }
 
 func getFile() {
-	file, _ := os.Open("test.tmp2")
-	bs := bufio.NewScanner(file)
-	i := 0
-
 	t, _ := time.Parse("2006-01-02 15:04:05", "2012-05-01 23:59:59")
 	the_time := int(t.Unix())
 	t, _ = time.Parse("2006-01-02 15:04:05", "2015-05-01 23:59:59")
@@ -139,46 +136,100 @@ func getFile() {
 	mapB := make(map[int]float32)
 	mapC := make(map[int]float32)
 
-	allCustomer := make([]int, 0, 10000)
 	mapCustomer := make(map[int]int)
 
 	customer_id := 0
 
-	tmp := make([]int, 7, 7)
+
+	tmpChan := make(chan []int, 10)
 
 
-	for bs.Scan() {
-		getLineData(bs.Bytes(), tmp)
+	i := 0
+	file, _ := os.Open("test.tmp2")
+	go func (tmpChan chan []int) {
+		t := 0
+		bs := bufio.NewScanner(file)
+		for bs.Scan() {
+			if t % 2 == 0 {
+				tmp := make([]int, 7, 7)
+				getLineData(bs.Bytes(), tmp)
 
-		if tmp[0] != 0 && tmp[1] != 0 {
+				tmpChan <- tmp
 
-			if tmp[5] >= the_time {
-				if tmp[6] <= time1 {
-					customer_id = tmp[1]
-					if _, ok := mapCustomer[customer_id]; !ok {
-						allCustomer = append(allCustomer, customer_id)
-						mapCustomer[customer_id] = customer_id
+			}
+			t++
+		}
+
+		tmpChan <- make([]int, 1)
+		fmt.Println(t)
+	}(tmpChan)
+
+	file2, _ := os.Open("test.tmp2")
+	go func (tmpChan chan []int) {
+		t := 0
+		bs := bufio.NewScanner(file2)
+		for bs.Scan() {
+			if t % 2 != 0 {
+				tmp := make([]int, 7, 7)
+				getLineData(bs.Bytes(), tmp)
+
+				tmpChan <- tmp
+			}
+			t++
+		}
+
+		tmpChan <- make([]int, 1)
+		fmt.Println(t)
+	}(tmpChan)
+
+	isBreak := false
+
+	LOOP:
+	for {
+		select {
+		case tmp := <-tmpChan:
+
+			i++
+			if tmp[0] != 0 && tmp[1] != 0 {
+				if tmp[5] >= the_time {
+					if tmp[6] <= time1 {
+
+						customer_id = tmp[1]
+						if _, ok := mapCustomer[customer_id]; !ok {
+							mapCustomer[customer_id] = customer_id
+						}
+
+						if tmp[6] >= time2 {
+							mapA[customer_id]++
+						} else if tmp[6] >= time3 {
+							mapB[customer_id]++
+						} else if tmp[6] >= time4 {
+							mapC[customer_id]++
+						}
 					}
+				}
+			} else if tmp[0] == 0 {
+				if len(tmp) == 1 {
 
-					if tmp[6] >= time2 {
-						mapA[customer_id]++
-					} else if tmp[6] >= time3 {
-						mapB[customer_id]++
-					} else if tmp[6] >= time4 {
-						mapC[customer_id]++
+					if isBreak {
+						break LOOP
+					} else {
+						isBreak = true
 					}
 				}
 			}
+		default:
 		}
 
-		i++
+
 	}
+
 
 	var a, b float32
 	var rank string
 	var A ,B, C float32
 
-	for _, customer_id := range allCustomer {
+	for _, customer_id := range mapCustomer {
 
 		A = mapA[customer_id]
 		B = mapB[customer_id]
@@ -508,6 +559,9 @@ FROM
 }
 
 func main() {
+
+	runtime.GOMAXPROCS(2)
+
 	t1 := time.Now()
 	getFile()
 	//sqlTest()
