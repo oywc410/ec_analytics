@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/lib/pq"
 	"strconv"
+	"sync"
+	"runtime"
 )
 
 var tb_name = "webbin_test"
@@ -387,6 +389,7 @@ FROM dtb_order`)
 
 func sqlTest() {
 	db, err := sql.Open("postgres", "user=postgres password=root dbname="+tb_name+" sslmode=disable")
+	defer db.Close()
 
 	if err != nil {
 		fmt.Println(err)
@@ -508,14 +511,46 @@ FROM
 }
 
 func main() {
+	runTest()
+
+}
+
+func runTest() {
+
+
+	n, _ := strconv.Atoi(os.Args[1])
+
+	runtime.GOMAXPROCS(3)
+
 	t1 := time.Now()
-	getFile()
-	//sqlTest()
-	//getFile()
-	//addFile()
+
+	wg := new(sync.WaitGroup)
+	wg.Add(n)
+	for i:= 0; i < n ; i++ {
+		go func () {
+			t1 := time.Now()
+			defer wg.Done()
+			sqlTest()
+			fmt.Println(time.Now().Sub(t1))
+		}()
+	}
+	wg.Wait()
 	fmt.Println(time.Now().Sub(t1))
-	fmt.Println("---------------------")
+
+	fmt.Println("--------------------------------")
+
 	t1 = time.Now()
-	sqlTest()
+	wg = new(sync.WaitGroup)
+	wg.Add(n)
+	for i:= 0; i < n ; i++ {
+		go func () {
+			t1 := time.Now()
+			defer wg.Done()
+			getFile()
+			fmt.Println(time.Now().Sub(t1))
+		}()
+	}
+	wg.Wait()
 	fmt.Println(time.Now().Sub(t1))
+
 }
